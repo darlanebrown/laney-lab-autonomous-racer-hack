@@ -107,41 +107,123 @@ function jitterLabObstacles(obstacles: TrackObstacle[], visualSeed: number): Tra
 }
 
 function LabEnvironment({ obstacles }: { obstacles: TrackObstacle[] }) {
+  const roomWidth = 104;
+  const roomDepth = 72;
+  const wallHeight = 10;
   return (
     <group>
       {/* Room pad / floor tint */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]} receiveShadow>
-        <planeGeometry args={[90, 60]} />
+        <planeGeometry args={[roomWidth, roomDepth]} />
         <meshStandardMaterial color="#7a7365" roughness={0.95} metalness={0.02} />
       </mesh>
 
-      {/* Subtle room boundary walls */}
-      <mesh position={[0, 2.2, -30]}>
-        <boxGeometry args={[90, 4.4, 0.6]} />
+      {/* Floor tile grid helps the car feel small in a full-size room */}
+      {Array.from({ length: 9 }).map((_, i) => {
+        const z = -32 + i * 8;
+        return (
+          <mesh key={`tile-z-${i}`} position={[0, 0.005, z]} rotation={[-Math.PI / 2, 0, 0]}>
+            <planeGeometry args={[roomWidth, 0.06]} />
+            <meshStandardMaterial color="#8d8678" opacity={0.35} transparent />
+          </mesh>
+        );
+      })}
+      {Array.from({ length: 13 }).map((_, i) => {
+        const x = -48 + i * 8;
+        return (
+          <mesh key={`tile-x-${i}`} position={[x, 0.005, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+            <planeGeometry args={[roomDepth, 0.06]} />
+            <meshStandardMaterial color="#8d8678" opacity={0.35} transparent />
+          </mesh>
+        );
+      })}
+
+      {/* Full-height room boundary walls */}
+      <mesh position={[0, wallHeight / 2, -roomDepth / 2]}>
+        <boxGeometry args={[roomWidth, wallHeight, 0.8]} />
         <meshStandardMaterial color="#d9d7cf" />
       </mesh>
-      <mesh position={[0, 2.2, 30]}>
-        <boxGeometry args={[90, 4.4, 0.6]} />
+      <mesh position={[0, wallHeight / 2, roomDepth / 2]}>
+        <boxGeometry args={[roomWidth, wallHeight, 0.8]} />
         <meshStandardMaterial color="#d9d7cf" />
       </mesh>
-      <mesh position={[-45, 2.2, 0]}>
-        <boxGeometry args={[0.6, 4.4, 60]} />
+      <mesh position={[-roomWidth / 2, wallHeight / 2, 0]}>
+        <boxGeometry args={[0.8, wallHeight, roomDepth]} />
         <meshStandardMaterial color="#d9d7cf" />
       </mesh>
-      <mesh position={[45, 2.2, 0]}>
-        <boxGeometry args={[0.6, 4.4, 60]} />
+      <mesh position={[roomWidth / 2, wallHeight / 2, 0]}>
+        <boxGeometry args={[0.8, wallHeight, roomDepth]} />
         <meshStandardMaterial color="#d9d7cf" />
       </mesh>
 
-      {/* Ceiling lights as visual references */}
-      {[-24, 0, 24].map((x) => (
-        <group key={`light-${x}`} position={[x, 3.2, 0]}>
+      {/* Classroom features for scale cues */}
+      <mesh position={[0, 4.4, -roomDepth / 2 + 0.45]}>
+        <boxGeometry args={[18, 3.2, 0.08]} />
+        <meshStandardMaterial color="#f4f8fb" />
+      </mesh>
+      <mesh position={[0, 4.4, -roomDepth / 2 + 0.41]}>
+        <boxGeometry args={[19.2, 3.8, 0.05]} />
+        <meshStandardMaterial color="#5b4633" />
+      </mesh>
+
+      {[-28, -12, 12, 28].map((x) => (
+        <group key={`window-${x}`} position={[x, 6.2, roomDepth / 2 - 0.45]}>
           <mesh>
-            <boxGeometry args={[10, 0.15, 2]} />
-            <meshStandardMaterial color="#f3f1e9" emissive="#fff4bf" emissiveIntensity={0.15} />
+            <boxGeometry args={[10, 3.6, 0.08]} />
+            <meshStandardMaterial color="#b9d7ea" opacity={0.8} transparent />
+          </mesh>
+          <mesh position={[0, 0, -0.02]}>
+            <boxGeometry args={[10.8, 4.2, 0.04]} />
+            <meshStandardMaterial color="#f5f1e5" />
+          </mesh>
+          <mesh position={[0, 0, 0.03]}>
+            <boxGeometry args={[0.12, 3.6, 0.04]} />
+            <meshStandardMaterial color="#f5f1e5" />
+          </mesh>
+          <mesh position={[0, 0, 0.03]} rotation={[0, 0, Math.PI / 2]}>
+            <boxGeometry args={[0.12, 10, 0.04]} />
+            <meshStandardMaterial color="#f5f1e5" />
           </mesh>
         </group>
       ))}
+
+      <group position={[roomWidth / 2 - 4.8, 0, -roomDepth / 2 + 6]}>
+        <mesh position={[0, 4.2, 0]}>
+          <boxGeometry args={[1.8, 8.4, 0.12]} />
+          <meshStandardMaterial color="#7b5b40" />
+        </mesh>
+        <mesh position={[-0.55, 4.2, 0.08]}>
+          <boxGeometry args={[0.06, 0.9, 0.05]} />
+          <meshStandardMaterial color="#d7d7d7" />
+        </mesh>
+      </group>
+
+      {/* Ceiling lights as visual references */}
+      {[-30, 0, 30].map((x) => (
+        <group key={`light-${x}`} position={[x, 8.8, 0]}>
+          <mesh>
+            <boxGeometry args={[12, 0.2, 2.4]} />
+            <meshStandardMaterial color="#f3f1e9" emissive="#fff4bf" emissiveIntensity={0.22} />
+          </mesh>
+          <mesh position={[0, -0.22, 0]}>
+            <boxGeometry args={[11.4, 0.06, 1.8]} />
+            <meshStandardMaterial color="#fff6c8" emissive="#fff4bf" emissiveIntensity={0.3} />
+          </mesh>
+        </group>
+      ))}
+
+      {/* Teacher station and storage add more "real room" scale references */}
+      <group position={[-36, 0, -28]} rotation={[0, 0.05, 0]}>
+        <TableProp />
+        <mesh position={[4.8, 1.4, -0.8]} castShadow receiveShadow>
+          <boxGeometry args={[1.4, 2.8, 0.8]} />
+          <meshStandardMaterial color="#64748b" />
+        </mesh>
+      </group>
+      <mesh position={[40, 1.6, 24]} castShadow receiveShadow>
+        <boxGeometry args={[2.6, 3.2, 10]} />
+        <meshStandardMaterial color="#b8b1a3" />
+      </mesh>
 
       {obstacles.map((obs) => (
         <group
@@ -162,18 +244,18 @@ function LabEnvironment({ obstacles }: { obstacles: TrackObstacle[] }) {
 function TableProp() {
   return (
     <group>
-      <mesh position={[0, 0.78, 0]} castShadow receiveShadow>
-        <boxGeometry args={[5.5, 0.14, 2.4]} />
+      <mesh position={[0, 1.12, 0]} castShadow receiveShadow>
+        <boxGeometry args={[6.4, 0.18, 3.0]} />
         <meshStandardMaterial color="#a0764a" />
       </mesh>
       {[
-        [-2.4, 0.38, -1.0],
-        [2.4, 0.38, -1.0],
-        [-2.4, 0.38, 1.0],
-        [2.4, 0.38, 1.0],
+        [-2.8, 0.55, -1.25],
+        [2.8, 0.55, -1.25],
+        [-2.8, 0.55, 1.25],
+        [2.8, 0.55, 1.25],
       ].map((p, i) => (
         <mesh key={i} position={p as [number, number, number]} castShadow>
-          <boxGeometry args={[0.14, 0.76, 0.14]} />
+          <boxGeometry args={[0.18, 1.1, 0.18]} />
           <meshStandardMaterial color="#6b4f34" />
         </mesh>
       ))}
@@ -184,22 +266,22 @@ function TableProp() {
 function ChairProp() {
   return (
     <group>
-      <mesh position={[0, 0.42, 0]} castShadow receiveShadow>
-        <boxGeometry args={[0.9, 0.08, 0.9]} />
+      <mesh position={[0, 0.62, 0]} castShadow receiveShadow>
+        <boxGeometry args={[1.25, 0.12, 1.25]} />
         <meshStandardMaterial color="#2f4f6f" />
       </mesh>
-      <mesh position={[0, 0.85, -0.38]} castShadow>
-        <boxGeometry args={[0.9, 0.8, 0.08]} />
+      <mesh position={[0, 1.38, -0.52]} castShadow>
+        <boxGeometry args={[1.25, 1.25, 0.12]} />
         <meshStandardMaterial color="#3a5f84" />
       </mesh>
       {[
-        [-0.35, 0.21, -0.35],
-        [0.35, 0.21, -0.35],
-        [-0.35, 0.21, 0.35],
-        [0.35, 0.21, 0.35],
+        [-0.48, 0.3, -0.48],
+        [0.48, 0.3, -0.48],
+        [-0.48, 0.3, 0.48],
+        [0.48, 0.3, 0.48],
       ].map((p, i) => (
         <mesh key={i} position={p as [number, number, number]} castShadow>
-          <boxGeometry args={[0.08, 0.42, 0.08]} />
+          <boxGeometry args={[0.1, 0.6, 0.1]} />
           <meshStandardMaterial color="#4b5563" />
         </mesh>
       ))}
@@ -210,12 +292,12 @@ function ChairProp() {
 function ConeProp() {
   return (
     <group>
-      <mesh position={[0, 0.22, 0]} castShadow receiveShadow>
-        <coneGeometry args={[0.35, 0.5, 12]} />
+      <mesh position={[0, 0.3, 0]} castShadow receiveShadow>
+        <coneGeometry args={[0.45, 0.7, 12]} />
         <meshStandardMaterial color="#f97316" />
       </mesh>
-      <mesh position={[0, 0.02, 0]} receiveShadow>
-        <cylinderGeometry args={[0.42, 0.42, 0.04, 12]} />
+      <mesh position={[0, 0.03, 0]} receiveShadow>
+        <cylinderGeometry args={[0.55, 0.55, 0.06, 12]} />
         <meshStandardMaterial color="#111827" />
       </mesh>
     </group>

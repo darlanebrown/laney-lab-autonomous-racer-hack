@@ -1,10 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useGameStore } from '@/lib/stores/game-store';
 import { TRACKS } from '@/lib/tracks/track-data';
 import { getStats, type AccumulatedStats } from '@/lib/data/training-data';
+import { getRemoteRunsSummary, isApiConfigured } from '@/lib/api/api-client';
 import { Play, Lock, Trophy, Zap, Bot, Info, Database, BarChart3 } from 'lucide-react';
 
 
@@ -31,10 +32,32 @@ export function TrackSelect() {
   const labRandomizationEnabled = useGameStore((s) => s.labRandomizationEnabled);
   const setLabRandomizationEnabled = useGameStore((s) => s.setLabRandomizationEnabled);
 
-  // Use persisted accumulated stats for unlock gating & header display
-  // (Zustand lapCount resets per-run; localStorage totalLaps persists across sessions)
-  const [persistedStats] = useState<AccumulatedStats>(() => getStats());
-  const totalLaps = persistedStats?.totalLaps ?? 0;
+  const [localStats] = useState<AccumulatedStats>(() => getStats());
+  const [cloudSummary, setCloudSummary] = useState<{ runs: number; laps: number; frames: number } | null>(null);
+
+  useEffect(() => {
+    if (!isApiConfigured()) return;
+    let cancelled = false;
+    void getRemoteRunsSummary()
+      .then((summary) => {
+        if (cancelled || !summary) return;
+        setCloudSummary({
+          runs: summary.completed_runs,
+          laps: summary.completed_laps,
+          frames: summary.completed_frames,
+        });
+      })
+      .catch((err) => {
+        console.error('Failed to load pooled run summary', err);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const totalLaps = cloudSummary?.laps ?? localStats.totalLaps ?? 0;
+  const totalFrames = cloudSummary?.frames ?? localStats.totalFrames ?? 0;
+  const totalRuns = cloudSummary?.runs ?? localStats.totalRuns ?? 0;
 
   function initTrack(trackId: string) {
     setTrackId(trackId);
@@ -84,8 +107,13 @@ export function TrackSelect() {
         <div className="flex items-center justify-center gap-6 text-sm">
           <div className="flex items-center gap-2 bg-white/5 rounded-full px-4 py-2">
             <Zap className="w-4 h-4 text-yellow-400" />
-            <span className="font-bold">{persistedStats?.totalFrames?.toLocaleString() ?? 0}</span>
+            <span className="font-bold">{totalFrames.toLocaleString()}</span>
             <span className="text-gray-400">Frames</span>
+          </div>
+          <div className="flex items-center gap-2 bg-white/5 rounded-full px-4 py-2">
+            <Database className="w-4 h-4 text-green-400" />
+            <span className="font-bold">{totalRuns.toLocaleString()}</span>
+            <span className="text-gray-400">Runs</span>
           </div>
           <div className="flex items-center gap-2 bg-white/5 rounded-full px-4 py-2">
             <Trophy className="w-4 h-4 text-yellow-400" />
@@ -192,20 +220,45 @@ export function TrackSelect() {
 }
 
 function DataBar() {
-  const [stats] = useState<AccumulatedStats>(() => getStats());
+  const [localStats] = useState<AccumulatedStats>(() => getStats());
+  const [cloudSummary, setCloudSummary] = useState<{ runs: number; laps: number; frames: number } | null>(null);
 
-  if (stats.totalRuns === 0) return null;
+  useEffect(() => {
+    if (!isApiConfigured()) return;
+    let cancelled = false;
+    void getRemoteRunsSummary()
+      .then((summary) => {
+        if (cancelled || !summary) return;
+        setCloudSummary({
+          runs: summary.completed_runs,
+          laps: summary.completed_laps,
+          frames: summary.completed_frames,
+        });
+      })
+      .catch((err) => {
+        console.error('Failed to load pooled run summary', err);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const totalRuns = cloudSummary?.runs ?? localStats.totalRuns;
+  const totalLaps = cloudSummary?.laps ?? localStats.totalLaps;
+  const totalFrames = cloudSummary?.frames ?? localStats.totalFrames;
+
+  if (totalRuns === 0) return null;
 
   return (
     <div className="bg-white/5 border border-gray-700 rounded-2xl px-5 py-3 flex items-center justify-between">
       <div className="flex items-center gap-2 text-sm text-gray-300">
         <Database className="w-4 h-4 text-green-400" />
-        <span className="font-medium">Training Data</span>
+        <span className="font-medium">{cloudSummary ? 'Pooled Training Data' : 'Training Data'}</span>
       </div>
       <div className="flex items-center gap-4 text-xs text-gray-400">
-        <span><strong className="text-white">{stats.totalRuns}</strong> runs</span>
-        <span><strong className="text-white">{stats.totalLaps}</strong> laps</span>
-        <span><strong className="text-white">{stats.totalFrames.toLocaleString()}</strong> frames</span>
+        <span><strong className="text-white">{totalRuns.toLocaleString()}</strong> runs</span>
+        <span><strong className="text-white">{totalLaps.toLocaleString()}</strong> laps</span>
+        <span><strong className="text-white">{totalFrames.toLocaleString()}</strong> frames</span>
       </div>
     </div>
   );

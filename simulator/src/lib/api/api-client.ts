@@ -60,6 +60,12 @@ export interface ListRunsResponsePayload {
   next_cursor: string | null;
 }
 
+export interface RunsSummaryPayload {
+  completed_runs: number;
+  completed_laps: number;
+  completed_frames: number;
+}
+
 export interface ModelRecordPayload {
   model_id: string;
   model_version: string;
@@ -153,6 +159,12 @@ export async function listRemoteRuns(limit = 20): Promise<RunRecordPayload[]> {
   if (!base) return [];
   const payload = await requestJson<ListRunsResponsePayload>(`${base}/api/runs?limit=${limit}`);
   return payload.items;
+}
+
+export async function getRemoteRunsSummary(): Promise<RunsSummaryPayload | null> {
+  const base = getApiBaseUrl();
+  if (!base) return null;
+  return requestJson<RunsSummaryPayload>(`${base}/api/runs/summary`);
 }
 
 export async function setActiveModelVersion(modelVersion: string): Promise<void> {

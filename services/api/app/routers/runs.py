@@ -16,6 +16,7 @@ from app.schemas import (
     FinalizeRunRequest,
     FinalizeRunResponse,
     ListRunsResponse,
+    RunsSummaryResponse,
     RunArtifacts,
     RunRecord,
 )
@@ -225,6 +226,49 @@ def list_runs(
         rows = rows[:limit]
 
     return ListRunsResponse(items=[row_to_run_record(row) for row in rows], next_cursor=next_cursor)
+
+
+@router.get("/summary", response_model=RunsSummaryResponse)
+def get_runs_summary(
+    conn: sqlite3.Connection = Depends(get_conn),
+    track_id: Optional[str] = None,
+    mode: Optional[str] = None,
+    user_id: Optional[str] = None,
+    model_version: Optional[str] = None,
+) -> RunsSummaryResponse:
+    clauses: list[str] = ["status = 'complete'"]
+    params: list[Any] = []
+    if track_id:
+        clauses.append("track_id = ?")
+        params.append(track_id)
+    if mode:
+        clauses.append("mode = ?")
+        params.append(mode)
+    if user_id:
+        clauses.append("user_id = ?")
+        params.append(user_id)
+    if model_version:
+        clauses.append("model_version = ?")
+        params.append(model_version)
+
+    where = f"WHERE {' AND '.join(clauses)}"
+    row = conn.execute(
+        f"""
+        SELECT
+            COUNT(*) AS completed_runs,
+            COALESCE(SUM(lap_count), 0) AS completed_laps,
+            COALESCE(SUM(frame_count), 0) AS completed_frames
+        FROM runs
+        {where}
+        """,
+        params,
+    ).fetchone()
+    assert row is not None
+    return RunsSummaryResponse(
+        completed_runs=int(row["completed_runs"] or 0),
+        completed_laps=int(row["completed_laps"] or 0),
+        completed_frames=int(row["completed_frames"] or 0),
+    )
 
 
 @router.get("/{run_id}", response_model=RunRecord)

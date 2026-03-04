@@ -86,6 +86,13 @@ def test_runs_create_upload_finalize_list_get(tmp_path: Path) -> None:
         assert len(items) == 1
         assert items[0]["run_id"] == run_id
 
+        summary_res = client.get("/api/runs/summary")
+        assert summary_res.status_code == 200, summary_res.text
+        summary = summary_res.json()
+        assert summary["completed_runs"] == 1
+        assert summary["completed_laps"] == 2
+        assert summary["completed_frames"] == 1
+
         artifact_frames_res = client.get(f"/api/runs/{run_id}/artifacts/frames")
         assert artifact_frames_res.status_code == 200
         assert artifact_frames_res.headers["content-type"].startswith("application/zip")

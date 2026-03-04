@@ -72,6 +72,12 @@ class ListRunsResponse(BaseModel):
     next_cursor: Optional[str] = None
 
 
+class RunsSummaryResponse(BaseModel):
+    completed_runs: int
+    completed_laps: int
+    completed_frames: int
+
+
 class ModelRecord(BaseModel):
     model_id: str
     model_version: str

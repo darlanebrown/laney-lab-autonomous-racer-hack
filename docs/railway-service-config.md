@@ -27,7 +27,7 @@ Use this as the source of truth to avoid service config drift.
 - Root Directory: `/services/api`
 - Config file: `services/api/railway.json`
 - Builder: `DOCKERFILE`
-- Dockerfile path: `Dockerfile`
+- Dockerfile path: `services/api/Dockerfile`
 - Build Command override: none
 - Start Command override: none
 - Restart policy: `ON_FAILURE`, max retries `10`
@@ -39,7 +39,7 @@ Use this as the source of truth to avoid service config drift.
 - Root Directory: `/services/trainer`
 - Config file: `services/trainer/railway.json`
 - Builder: `DOCKERFILE`
-- Dockerfile path: `Dockerfile`
+- Dockerfile path: `services/trainer/Dockerfile`
 - Build Command override: none
 - Start Command override: none
 - Restart policy: `ON_FAILURE`, max retries `10`
@@ -74,4 +74,3 @@ Current known app error (March 7, 2026):
   `Property 'ellipseGeometry' does not exist on type 'JSX.IntrinsicElements'.`
 
 This is a TypeScript/React Three Fiber typing issue in app code, not a Railway infra issue.
-

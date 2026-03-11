@@ -104,6 +104,78 @@ function sCurveTrack(): TrackPoint[] {
   return pts;
 }
 
+export function straightawayTrack(
+  prefix: string,
+  startX: number,
+  startZ: number,
+  endX: number,
+  endZ: number,
+  numPoints: number,
+  trackWidth: number,
+): Record<string, TrackPointNode> {
+  const tracks: Record<string, TrackPointNode> = {};
+
+  for (let i = 0; i < numPoints; i++) {
+    // The Lerp math to evenly space the waypoints
+    const fraction = i / (numPoints - 1);
+    const currentX = startX + fraction * (endX - startX);
+    const currentZ = startZ + fraction * (endZ - startZ);
+
+    const currentId = `${prefix}-${i}`;
+    const nextId = `${prefix}-${i + 1}`;
+
+    const newNode: TrackPointNode = {
+      id: currentId,
+      x: currentX,
+      z: currentZ,
+      width: trackWidth,
+      nextTrackPointIds: [],
+    };
+
+    // Connect it to the next node in the straightaway
+    if (i < numPoints - 1) {
+      newNode.nextTrackPointIds.push(nextId);
+    }
+
+    tracks[currentId] = newNode;
+  }
+
+  return tracks;
+}
+
+function createStadiumTrack(): Record<string, TrackPointNode> {
+  // 1. Generate the 4 track pieces
+  const leftStraight = straightawayTrack("left", -20, -30, -20, 30, 10, 5);
+  const topCurve = curveTrack("top", 0, 30, 20, 20, 10, 5, false, Math.PI, 0);
+  const rightStraight = straightawayTrack("right", 20, 30, 20, -30, 10, 5);
+  const bottomCurve = curveTrack(
+    "bot",
+    0,
+    -30,
+    20,
+    20,
+    10,
+    5,
+    false,
+    Math.PI * 2,
+    Math.PI,
+  );
+
+  const stadiumGraph = {
+    ...leftStraight,
+    ...topCurve,
+    ...rightStraight,
+    ...bottomCurve,
+  };
+
+  stadiumGraph["left-9"].nextTrackPointIds.push("top-0");
+  stadiumGraph["top-9"].nextTrackPointIds.push("right-0");
+  stadiumGraph["right-9"].nextTrackPointIds.push("bot-0");
+  stadiumGraph["bot-9"].nextTrackPointIds.push("left-0");
+
+  return stadiumGraph;
+}
+
 /**
  * Compute the heading angle from the spawn point toward the nearest
  * next waypoint so the car faces along the track at start.
@@ -219,6 +291,7 @@ function graphToArray(
 
 const ovalWaypoints = curveTrack("oval", 0, 0, 30, 20, 64, 5, true);
 const nascarRacingWaypoints = curveTrack("oval", 0, 0, 62, 38, 96, 7.5, true);
+const stadiumWaypoints = createStadiumTrack();
 const sCurveWaypoints = sCurveTrack();
 const cityWaypoints: TrackPoint[] = [
   { x: -25, z: -25 },
@@ -426,6 +499,17 @@ export const TRACKS: TrackDef[] = [
     waypoints: graphToArray(nascarRacingWaypoints),
     waypointsGraph: nascarRacingWaypoints,
     obstacles: nascarRacingObstacles,
+  },
+  {
+    id: "stadium",
+    name: "Stadium",
+    difficulty: "beginner",
+    description: "A continuous loop made of straightaways and semicircles",
+    width: 5,
+    spawnPos: [20, 0.5, 30],
+    spawnRotation: computeSpawnRotationGraph(20, 30, stadiumWaypoints),
+    waypoints: graphToArray(stadiumWaypoints, "right-0"),
+    waypointsGraph: stadiumWaypoints,
   },
   {
     id: "s-curves",

@@ -91,17 +91,42 @@ export function curveTrack(
   return tracks;
 }
 
-function sCurveTrack(): TrackPoint[] {
-  const pts: TrackPoint[] = [];
-  const segments = 80;
-  for (let i = 0; i < segments; i++) {
-    const t = i / segments;
+export function sCurveTrack(
+  prefix: string = "scurve",
+  numPoints: number = 80,
+  trackWidth: number = 4.5,
+): Record<string, TrackPointNode> {
+  const tracks: Record<string, TrackPointNode> = {};
+
+  for (let i = 0; i < numPoints; i++) {
+    const t = i / numPoints;
     const angle = t * Math.PI * 2;
-    const x = Math.sin(angle) * 30 + Math.sin(angle * 2) * 12;
-    const z = Math.cos(angle) * 40;
-    pts.push({ x, z });
+
+    const currentX = Math.sin(angle) * 30 + Math.sin(angle * 2) * 12;
+    const currentZ = Math.cos(angle) * 40;
+
+    const currentId = `${prefix}-${i}`;
+    const nextId = `${prefix}-${i + 1}`;
+
+    const newNode: TrackPointNode = {
+      id: currentId,
+      x: currentX,
+      z: currentZ,
+      width: trackWidth,
+      nextTrackPointIds: [],
+    };
+
+    // Draw the arrows: connect to the next node, or loop back to 0 at the end!
+    if (i < numPoints - 1) {
+      newNode.nextTrackPointIds.push(nextId);
+    } else {
+      newNode.nextTrackPointIds.push(`${prefix}-0`);
+    }
+
+    tracks[currentId] = newNode;
   }
-  return pts;
+
+  return tracks;
 }
 
 export function straightawayTrack(
@@ -292,7 +317,7 @@ function graphToArray(
 const ovalWaypoints = curveTrack("oval", 0, 0, 30, 20, 64, 5, true);
 const nascarRacingWaypoints = curveTrack("oval", 0, 0, 62, 38, 96, 7.5, true);
 const stadiumWaypoints = createStadiumTrack();
-const sCurveWaypoints = sCurveTrack();
+const sCurveWaypoints = sCurveTrack("sCurve", 100, 4.5);
 const cityWaypoints: TrackPoint[] = [
   { x: -25, z: -25 },
   { x: -25, z: 25 },
@@ -373,9 +398,18 @@ const classroomLabBWaypoints: TrackPoint[] = [
 ];
 // --- CUTOM S-TRACK WAYPOINTS ---
 const serpentWaypoints: TrackPoint[] = [
-  { x: 0, z: 0 }, { x: 10, z: 5 }, { x: 20, z: 15 }, { x: 30, z: 20 },
-  { x: 40, z: 15 }, { x: 50, z: 5 }, { x: 60, z: -5 }, { x: 70, z: -15 },
-  { x: 80, z: -20 }, { x: 90, z: -15 }, { x: 100, z: -5 }, { x: 110, z: 0 }
+  { x: 0, z: 0 },
+  { x: 10, z: 5 },
+  { x: 20, z: 15 },
+  { x: 30, z: 20 },
+  { x: 40, z: 15 },
+  { x: 50, z: 5 },
+  { x: 60, z: -5 },
+  { x: 70, z: -15 },
+  { x: 80, z: -20 },
+  { x: 90, z: -15 },
+  { x: 100, z: -5 },
+  { x: 110, z: 0 },
 ];
 const classroomLabBObstacles: TrackObstacle[] = [
   { id: "table-b1", kind: "table", x: -18, z: 4, rotation: 0.05, scale: 1.05 },
@@ -534,8 +568,8 @@ export const TRACKS: TrackDef[] = [
     description: "Tests smooth steering transitions",
     width: 4.5,
     spawnPos: [0, 0.5, -40],
-    spawnRotation: computeSpawnRotation(0, -40, sCurveWaypoints),
-    waypoints: sCurveWaypoints,
+    spawnRotation: computeSpawnRotationGraph(0, -40, sCurveWaypoints),
+    waypoints: graphToArray(sCurveWaypoints),
   },
   {
     id: "city-circuit",

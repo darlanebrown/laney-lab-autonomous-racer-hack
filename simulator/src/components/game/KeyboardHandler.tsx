@@ -1,14 +1,30 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useGameStore } from '@/lib/stores/game-store';
 
 /**
- * Captures keyboard input and updates the game store.
- * Also handles ESC for pause/resume.
+ * Captures keyboard input and writes to the unified input store.
+ * Skipped when a gamepad is connected (GamepadHandler owns input then).
  */
 export function KeyboardHandler() {
+  const keysRef = useRef<Record<string, boolean>>({});
+
   useEffect(() => {
+    function computeInput() {
+      const k = keysRef.current;
+      const left  = k['ArrowLeft']  || k['a'] || k['A'];
+      const right = k['ArrowRight'] || k['d'] || k['D'];
+      const up    = k['ArrowUp']    || k['w'] || k['W'];
+      const down  = k['ArrowDown']  || k['s'] || k['S'];
+      const brake = k[' '] || down;
+      return {
+        steer:    left ? 1 : right ? -1 : 0,
+        throttle: up   ? 1 : 0,
+        brake:    !!brake,
+      };
+    }
+
     function onKeyDown(e: KeyboardEvent) {
       const store = useGameStore.getState();
 
@@ -23,7 +39,6 @@ export function KeyboardHandler() {
         e.preventDefault();
         if (store.mode === 'autonomous') { store.setMode('auto-paused'); return; }
         if (store.mode === 'auto-paused') { store.setMode('autonomous'); return; }
-        // In manual mode, fall through so Car3D sees it as a key
       }
 
       // Number keys 1-5: snap throttleTarget to preset levels
@@ -37,11 +52,14 @@ export function KeyboardHandler() {
         e.preventDefault();
       }
 
-      store.setKey(e.key, true);
+      keysRef.current[e.key] = true;
+      if (!store.gamepadConnected) store.setInput(computeInput());
     }
 
     function onKeyUp(e: KeyboardEvent) {
-      useGameStore.getState().setKey(e.key, false);
+      keysRef.current[e.key] = false;
+      const store = useGameStore.getState();
+      if (!store.gamepadConnected) store.setInput(computeInput());
     }
 
     window.addEventListener('keydown', onKeyDown);

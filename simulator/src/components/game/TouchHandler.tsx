@@ -91,9 +91,7 @@ export function TouchHandler() {
       setJoystick(null);
     }
 
-    // then swap the listener:
     window.addEventListener('touchcancel', onTouchEnd);
-    // and in cleanup:
     window.removeEventListener('touchcancel', onTouchEnd);
 
 

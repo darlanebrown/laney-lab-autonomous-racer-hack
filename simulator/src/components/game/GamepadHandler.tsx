@@ -37,7 +37,7 @@ export function GamepadHandler() {
       const gp = Array.from(navigator.getGamepads()).find(g => g?.connected) ?? null;
 
       if (gp) {
-        // Update device flag directly from poll — avoids event timing gaps
+        // Update device flag directly from poll — avoids gamepadconnected event timing gaps
         // Polling is intentional — gamepadconnected events are unreliable across browsers.
         if (store.activeInputDevice !== 'gamepad') store.setActiveInputDevice('gamepad');
 

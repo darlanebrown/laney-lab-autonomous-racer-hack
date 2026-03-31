@@ -73,10 +73,8 @@ export function RunComplete() {
             hasFrameCapture: savedCaptureFrames > 0,
             captureFrameCount: savedCaptureFrames,
           });
-          if (savedCaptureFrames > 0) {
-            enqueueRunForSync(run.id);
-            void flushRunSyncQueue();
-          }
+          enqueueRunForSync(run.id);
+          void flushRunSyncQueue();
           setCaptureFrames(savedCaptureFrames);
           setCaptureStatus(savedCaptureFrames > 0 ? 'saved' : 'none');
         } catch (error) {
@@ -85,6 +83,10 @@ export function RunComplete() {
         }
       } else {
         setCaptureStatus(pendingCaptureFrames > 0 ? 'error' : 'none');
+        if (run) {
+          enqueueRunForSync(run.id);
+          void flushRunSyncQueue();
+        }
       }
 
       setSavedRun(run);

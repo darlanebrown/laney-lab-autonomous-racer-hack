@@ -56,9 +56,11 @@ interface GameState {
   car: CarState;
   updateCar: (partial: Partial<CarState>) => void;
 
-  // Input
-  keys: Record<string, boolean>;
-  setKey: (key: string, down: boolean) => void;
+  // Unified directional input (written by KeyboardHandler or GamepadHandler)
+  input: { steer: number; throttle: number; brake: boolean };
+  setInput: (input: { steer: number; throttle: number; brake: boolean }) => void;
+  gamepadConnected: boolean;
+  setGamepadConnected: (connected: boolean) => void;
 
   // Lap tracking
   currentLapStart: number;
@@ -139,8 +141,10 @@ export const useGameStore = create<GameState>((set, get) => ({
   car: { x: 30, z: 0, rotation: Math.PI / 2, speed: 0, steering: 0, throttle: 0, steerTarget: 0, throttleTarget: 0 },
   updateCar: (partial) => set((s) => ({ car: { ...s.car, ...partial } })),
 
-  keys: {},
-  setKey: (key, down) => set((s) => ({ keys: { ...s.keys, [key]: down } })),
+  input: { steer: 0, throttle: 0, brake: false },
+  setInput: (input) => set({ input }),
+  gamepadConnected: false,
+  setGamepadConnected: (connected) => set({ gamepadConnected: connected }),
 
   currentLapStart: 0,
   lapCount: saved.laps,

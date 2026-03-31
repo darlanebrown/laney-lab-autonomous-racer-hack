@@ -1,6 +1,6 @@
 'use client';
 
-import { createRemoteRun, finalizeRemoteRun, isApiConfigured, uploadRunArtifact } from '@/lib/api/api-client';
+import { createRemoteRun, finalizeRemoteRun, getApiBaseUrl, isApiConfigured, uploadRunArtifact } from '@/lib/api/api-client';
 import { getRunCaptureFileBlobs } from '@/lib/capture/frame-store';
 import { getRuns, type TrainingRun } from '@/lib/data/training-data';
 import { getOrCreateUserId } from '@/lib/user/user-identity';
@@ -75,14 +75,27 @@ function toDurationSeconds(run: TrainingRun): number {
   return Math.max(0, run.durationMs / 1000);
 }
 
+function buildControlsCsvBlob(run: TrainingRun): Blob {
+  const lines = ['frame_idx,timestamp_ms,steering,throttle,speed,x,z'];
+  for (let idx = 0; idx < run.controlLog.length; idx++) {
+    const frame = run.controlLog[idx];
+    lines.push([
+      idx,
+      frame.t,
+      frame.steering,
+      frame.throttle,
+      frame.speed,
+      frame.x,
+      frame.z,
+    ].join(','));
+  }
+  return new Blob([lines.join('\n')], { type: 'text/csv' });
+}
+
 async function syncSingleEntry(entry: RunSyncEntry): Promise<void> {
   const run = getLocalRunById(entry.localRunId);
   if (!run) {
     upsertEntry(entry.localRunId, { status: 'error', lastError: 'Local run not found', attempts: entry.attempts + 1 });
-    return;
-  }
-  if (!run.hasFrameCapture) {
-    upsertEntry(entry.localRunId, { status: 'error', lastError: 'No camera capture available for this run', attempts: entry.attempts + 1 });
     return;
   }
 
@@ -108,21 +121,26 @@ async function syncSingleEntry(entry: RunSyncEntry): Promise<void> {
       upsertEntry(entry.localRunId, { remoteRunId });
     }
 
-    const { framesZip, controlsCsv } = await getRunCaptureFileBlobs(run.id);
+    let controlsCsv = buildControlsCsvBlob(run);
+    if (run.hasFrameCapture) {
+      const captureBlobs = await getRunCaptureFileBlobs(run.id);
+      controlsCsv = captureBlobs.controlsCsv;
+      await uploadRunArtifact(uploadUrls?.frames ?? `${getApiBaseUrl()}/api/runs/${remoteRunId}/frames`, captureBlobs.framesZip, 'frames.zip');
+    }
+
     if (!uploadUrls) {
-      const base = process.env.NEXT_PUBLIC_API_URL?.replace(/\/+$/, '') ?? '';
+      const base = getApiBaseUrl() ?? '';
       uploadUrls = {
         frames: `${base}/api/runs/${remoteRunId}/frames`,
         controls: `${base}/api/runs/${remoteRunId}/controls`,
       };
     }
 
-    await uploadRunArtifact(uploadUrls.frames, framesZip, 'frames.zip');
     await uploadRunArtifact(uploadUrls.controls, controlsCsv, 'controls.csv');
     await finalizeRemoteRun(remoteRunId, {
       ended_at: run.timestamp,
       duration_s: toDurationSeconds(run),
-      frame_count: run.captureFrameCount ?? run.frames,
+      frame_count: run.frames,
       lap_count: run.lapCount,
       off_track_count: run.offTrackCount,
       best_lap_ms: run.bestLapMs,

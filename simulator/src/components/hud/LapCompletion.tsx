@@ -263,11 +263,6 @@ export function LapCompletion() {
         </animated.div>
       </div>
 
-      {/* Overlay */}
-      <div
-        className="lap-completion-overlay"
-        aria-hidden="true"
-      />
     </div>
   );
 }

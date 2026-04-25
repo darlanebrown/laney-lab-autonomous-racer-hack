@@ -7,6 +7,7 @@ import { GameHUD } from '@/components/hud/GameHUD';
 import { Minimap } from '@/components/minimap/Minimap';
 import { KeyboardHandler } from '@/components/game/KeyboardHandler';
 import { GamepadHandler } from '@/components/game/GamepadHandler';
+import { PreDriveGuide } from '@/components/game/PreDriveGuide';
 import { PauseOverlay } from '@/components/game/PauseOverlay';
 import { AutoControls } from '@/components/game/AutoControls';
 import { RunComplete } from '@/components/game/RunComplete';
@@ -26,6 +27,7 @@ export default function Home() {
   const mode = useGameStore((s) => s.mode);
   const aiModelSelectionMode = useGameStore((s) => s.aiModelSelectionMode);
   const aiPinnedModelVersion = useGameStore((s) => s.aiPinnedModelVersion);
+  const inPreDriveGuide = mode === 'pre-drive-guide';
 
   const inGame = mode !== 'menu';
 
@@ -35,6 +37,8 @@ export default function Home() {
       <GamepadHandler />
       {!inGame ? (
         <TrackSelect />
+      ) : inPreDriveGuide ? (
+        <PreDriveGuide />
       ) : (
         <div className="relative w-screen h-screen overflow-hidden bg-black">
           <ModelInferenceRunner

@@ -9,31 +9,15 @@ import { getRemoteRunsSummary, isApiConfigured } from '@/lib/api/api-client';
 import { Play, Lock, Trophy, Zap, Bot, Info, Database, BarChart3 } from 'lucide-react';
 import { TrackDifficultyDisplay, type DifficultyTier } from './TrackSelect.difficulty';
 import { TrackLapTimeDisplay } from './TrackSelect.laptime';
-import { TRACK_CARD_CONTRACTS } from '@/lib/tracks/track-card-contract';
-
-const difficultyColors: Record<string, string> = {
-  beginner: 'text-green-400 bg-green-400/10 border-green-400/30',
-  intermediate: 'text-yellow-400 bg-yellow-400/10 border-yellow-400/30',
-  advanced: 'text-red-400 bg-red-400/10 border-red-400/30',
-  special: 'text-purple-400 bg-purple-400/10 border-purple-400/30',
-};
+import { enterPreDriveGuide } from '@/lib/tracks/start-run';
 
 const MIN_DISPLAY_RUNS = 125;
 const MIN_DISPLAY_LAPS = 125;
-
-let trackVisualSeedCounter = 1;
-function nextTrackVisualSeed(): number {
-  trackVisualSeedCounter = (trackVisualSeedCounter + 1) & 0x7fffffff;
-  if (trackVisualSeedCounter === 0) trackVisualSeedCounter = 1;
-  return trackVisualSeedCounter;
-}
 
 /**
  * Track selection menu — shown before driving.
  */
 export function TrackSelect() {
-  const setTrackId = useGameStore((s) => s.setTrackId);
-  const setMode = useGameStore((s) => s.setMode);
   const labRandomizationEnabled = useGameStore((s) => s.labRandomizationEnabled);
   const setLabRandomizationEnabled = useGameStore((s) => s.setLabRandomizationEnabled);
 
@@ -66,35 +50,12 @@ export function TrackSelect() {
   const rawTotalRuns = cloudSummary?.runs ?? localStats.totalRuns ?? 0;
   const totalRuns = cloudSummary ? Math.max(rawTotalRuns, MIN_DISPLAY_RUNS) : rawTotalRuns;
 
-  function initTrack(trackId: string) {
-    setTrackId(trackId);
-    useGameStore.getState().resetLaps();
-    useGameStore.getState().clearControlLog();
-    const track = TRACKS.find((t) => t.id === trackId)!;
-    const visualSeed = (track.environment === 'lab' && labRandomizationEnabled)
-      ? nextTrackVisualSeed()
-      : 0;
-    useGameStore.getState().setTrackVisualSeed(visualSeed);
-    useGameStore.getState().updateCar({
-      x: track.spawnPos[0],
-      z: track.spawnPos[2],
-      rotation: track.spawnRotation,
-      speed: 0,
-      steering: 0,
-      throttle: 0,
-    });
-  }
-
   function startDriving(trackId: string) {
-    initTrack(trackId);
-    useGameStore.getState().setDriveMode('manual');
-    setMode('driving');
+    enterPreDriveGuide(trackId, 'manual');
   }
 
   function startAutonomous(trackId: string) {
-    initTrack(trackId);
-    useGameStore.getState().setDriveMode('ai');
-    setMode('autonomous');
+    enterPreDriveGuide(trackId, 'ai');
   }
 
   return (
